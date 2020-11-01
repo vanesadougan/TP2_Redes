@@ -55,13 +55,7 @@ Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
 NS_LOG_INFO ("Create Applications.");
 
-unint16_t port = 9;
 
-UdpEchoServerHelper echoServer (port);
-
-AppplicationContainer serverApps = echoServer.Install(nodes.Get (2));
-serverApps.Start (Seconds (1.0));
-serverApps.Stop (Seconds (30.0));
 
 /*UdpEchoClientHelper echoClient (interfaces.GetAddress (1), port); //Es el segundo nodo.
 echoClient.SetAttribute ("PaquetesMaximos", UintegerValue (1));
@@ -98,8 +92,89 @@ anim.SetConstantPosition (topologia.GetRight(2), 6.0, 4.0);
 Names::Add ("Receiver TCP2", topologia.GetRight(2));
 
 
+NS_LOG_INFO ("Configurado Stack");
+
+  InternetStackHelper stack;
+  NodeContainer senders;
+  NodeContainer receivers;
+  for (uint32_t i = 0; i < topologia.LeftCount (); ++i)
+    {
+      senders.Add (topologia.GetLeft (i));
+      stack.Install (topologia.GetLeft (i));
+    }
+  for (uint32_t i = 0; i < topologia.RightCount (); ++i)
+    {
+      receivers.Add (topologia.GetRight (i));
+      stack.Install (topologia.GetRight (i));
+    }
+
+  stack.Install (dumbbell.GetLeft ());
+  stack.Install (dumbbell.GetRight ());
+
+NS_LOG_INFO ("Configurado Application layer");
+
+configApplicationLayer (senders, topologia.GetRightIpv4Address (0), topologia.GetRightIpv4Address (1), topologia.GetRightIpv4Address (2), receivers);
+
+
+
+NodeContainer container;
+  container.Add (senders);
+  container.Add (dumbbell.GetLeft ());
+  container.Add (dumbbell.GetRight ());
+  container.Add (receivers);
+
 
 Simulator::Run ();
 Simulator::Destroy ();
 return 0;
+
+void configApplicationLayer (NodeContainer senders, Ipv4Address receiverTCP1 , Ipv4Address receiverUDP1, Ipv4Address receiverTCP2, receivers);
+{
+
+  // Create the OnOff applications to send TCP to the server
+  OnOffHelper udpOnOffApplication = createOnOffApplication ("ns3::UdpSocketFactory");
+    uint16_t udpPort = 80005;
+  OnOffHelper tcpOnOffApplication = createOnOffApplication ("ns3::TcpSocketFactory");
+    uint16_t tcpPort = 80006;
+  
+  ApplicationContainer appContainerSenders;
+
+  PacketSinkHelper udp_sink ("ns3::UdpSocketFactory",
+                            InetSocketAddress (Ipv4Address::GetAny (), udpPort));
+
+   PacketSinkHelper tcp_sink ("ns3::TcpSocketFactory",
+                            InetSocketAddress (Ipv4Address::GetAny (), tcpPort));
+
+   ApplicationContainer appContainerReceivers;
+
+
+
+ // set up SenderTCP1 with onOff over TCP to send to receiverTCP1
+  appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (0), receiverTCP1, tcpPort));
+  appContainerReceivers.Add (tcp_sink.Install (receivers.Get (0)));
+  // set up SenderTCP2 with onOff over TCP to send to receiverTCP2
+ appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (2), receiverTCP2, tcpPort));
+  appContainerReceivers.Add (tcp_sink.Install (receivers.Get (2)));
+
+  if (enableUdpApplication && !enableTcpApplication)
+    {
+      // set up senderUDP1 with onOff over UDP to send to receiverUDP1
+      appContainerSenders.Add (setUpApplication (udpOnOffApplication, senders.Get (1), receiverUDP1, udpPort));
+      appContainerReceivers.Add (udpSink.Install (receivers.Get (1)));
+    }
+
+  if (enableTcpApplication)
+    {
+      // set up senderUDP1 with onOff over TCP to send to receiverUDP1
+      appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (2), receiverUPD1, tcpPort));
+      appContainerReceivers.Add (tcp_sink.Install (receivers.Get (2)));
+    }
+
+  appContainerSenders.Start (Seconds (1.0));
+  appContainerSenders.Stop (Seconds (30.0);
+  appContainerReceivers.Start (Seconds (0.0));
+  appContainerReceivers.Stop (Seconds (30.0));
+
+}
+
 }
