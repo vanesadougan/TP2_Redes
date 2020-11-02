@@ -18,6 +18,8 @@ Time:SetResolution (Time::NS);
 LogComponentEnable ("UdPClientApp", LOG_LEVEL_INFO);
 LogComponentEnable ("UdpServerApp", LOG_LEVEL_INFO);
 
+bool habilitarUDP=true;
+bool habilitarTCP=false;
 NS_LOG_INFO ("Create nodes.");
 
 NodeContainer nodes;
@@ -156,19 +158,22 @@ void configApplicationLayer (NodeContainer senders, Ipv4Address receiverTCP1 , I
  appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (2), receiverTCP2, tcpPort));
   appContainerReceivers.Add (tcp_sink.Install (receivers.Get (2)));
 
-  if (enableUdpApplication && !enableTcpApplication)
+
+  if (habilitarTCP)
+    {
+      // set up senderUDP1 with onOff over TCP to send to receiverUDP1
+      appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (1), receiverUPD1, tcpPort));
+      appContainerReceivers.Add (tcp_sink.Install (receivers.Get (1)));
+    }
+
+  if (habilitarUDP && !habilitarTCP)
     {
       // set up senderUDP1 with onOff over UDP to send to receiverUDP1
       appContainerSenders.Add (setUpApplication (udpOnOffApplication, senders.Get (1), receiverUDP1, udpPort));
-      appContainerReceivers.Add (udpSink.Install (receivers.Get (1)));
+      appContainerReceivers.Add (udp_sink.Install (receivers.Get (1)));
     }
 
-  if (enableTcpApplication)
-    {
-      // set up senderUDP1 with onOff over TCP to send to receiverUDP1
-      appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (2), receiverUPD1, tcpPort));
-      appContainerReceivers.Add (tcp_sink.Install (receivers.Get (2)));
-    }
+  
 
   appContainerSenders.Start (Seconds (1.0));
   appContainerSenders.Stop (Seconds (30.0);
