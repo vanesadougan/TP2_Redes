@@ -1,48 +1,104 @@
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
+#include "ns3/csma-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/applications-module.h"
-
+#include "ns3/ipv4-global-routing-helper.h"
+#include "ns3/point-to-point-layout-module.h" //Dumbbel helper
+#include "ns3/netanim-module.h"
 
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("TP2_REDES");
 
-int
-main (int argc, char *argv[])
+// Refactor ya!
+uint32_t megabytesDataRate = 200;
+OnOffHelper createOnOffApplication (std::string socketFactory){
+  OnOffHelper application (socketFactory, Address ());
+  application.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
+  application.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
+  application.SetAttribute ("DataRate",
+                            DataRateValue (DataRate (megabytesDataRate * 8 * 1024 * 1024)));
+  return application;
+}
 
+ApplicationContainer
+setUpApplication (OnOffHelper application, Ptr<Node> source, Ipv4Address destination, uint16_t port)
 {
+  AddressValue address (InetSocketAddress (destination, port));
+  application.SetAttribute ("Remote", address);
+  return application.Install (source);
+}
 
-Time:SetResolution (Time::NS);
-LogComponentEnable ("UdPClientApp", LOG_LEVEL_INFO);
-LogComponentEnable ("UdpServerApp", LOG_LEVEL_INFO);
+void configApplicationLayer (NodeContainer senders, Ipv4Address receiverTCP1 , Ipv4Address receiverUDP1, Ipv4Address receiverTCP2, NodeContainer receivers){
+  // Create the OnOff applications to send TCP to the server
+  OnOffHelper udpOnOffApplication = createOnOffApplication ("ns3::UdpSocketFactory");
+    uint16_t udpPort = 8060;
+  OnOffHelper tcpOnOffApplication = createOnOffApplication ("ns3::TcpSocketFactory");
+    uint16_t tcpPort = 8020;
+  
+  ApplicationContainer appContainerSenders;
 
-bool habilitarUDP=true;
-bool habilitarTCP=false;
+  PacketSinkHelper udp_sink ("ns3::UdpSocketFactory",
+                            InetSocketAddress (Ipv4Address::GetAny (), udpPort));
+
+   PacketSinkHelper tcp_sink ("ns3::TcpSocketFactory",
+                            InetSocketAddress (Ipv4Address::GetAny (), tcpPort));
+
+   ApplicationContainer appContainerReceivers;
+
+
+ // set up SenderTCP1 with onOff over TCP to send to receiverTCP1
+  appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (0), receiverTCP1, tcpPort));
+  appContainerReceivers.Add (tcp_sink.Install (receivers.Get (0)));
+  // set up SenderTCP2 with onOff over TCP to send to receiverTCP2
+ appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (2), receiverTCP2, tcpPort));
+  appContainerReceivers.Add (tcp_sink.Install (receivers.Get (2)));
+
+  /*
+  if (habilitarTCP)
+    {
+      // set up senderUDP1 with onOff over TCP to send to receiverUDP1
+      appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (1), receiverUPD1, tcpPort));
+      appContainerReceivers.Add (tcp_sink.Install (receivers.Get (1)));
+    }
+
+  if (habilitarUDP && !habilitarTCP)
+    {
+      // set up senderUDP1 with onOff over UDP to send to receiverUDP1
+      appContainerSenders.Add (setUpApplication (udpOnOffApplication, senders.Get (1), receiverUDP1, udpPort));
+      appContainerReceivers.Add (udp_sink.Install (receivers.Get (1)));
+    }
+  */
+  appContainerSenders.Start (Seconds (1.0));
+  appContainerSenders.Stop (Seconds (30.0));
+  appContainerReceivers.Start (Seconds (0.0));
+  appContainerReceivers.Stop (Seconds (30.0));
+
+}
+
+
+
+int main (int argc, char *argv[]){
+
+//bool habilitarUDP=true;
+//bool habilitarTCP=false;
 NS_LOG_INFO ("Create nodes.");
 
-NodeContainer nodes;
-nodes.Create (5); //Se crea nodo 0, 1, 2, 3, 4 
-
-InternetStackHelper stack;
-stack.Intall (nodes);
-
-//se settean los channels.
+//Partes de la topologia
 NS_LOG_INFO ("Create channels.");
 PointToPointHelper p2Central;
 p2Central.SetDeviceAttribute ("DataRate:", StringValue ("5Mbps"));
-p2Central.SetChannelAtribute ("Delay:", StringValue ("1ms"));
-
+p2Central.SetChannelAttribute ("Delay:", StringValue ("1ms"));
 
 PointToPointHelper p2Izq;
 p2Izq.SetDeviceAttribute ("DataRate:", StringValue ("15Mbps"));
-p2Izq.SetChannelAtribute ("Delay:", StringValue ("5ms"));
-
+p2Izq.SetChannelAttribute ("Delay:", StringValue ("5ms"));
 
 PointToPointHelper p2Der;
 p2Der.SetDeviceAttribute ("DataRate:", StringValue ("15Mbps"));
-p2Der.SetChannelAtribute ("Delay:", StringValue ("5ms"));
+p2Der.SetChannelAttribute ("Delay:", StringValue ("5ms"));
 
 NS_LOG_INFO ("Create Dumbbell");
 PointToPointDumbbellHelper topologia (3, p2Izq, 3, p2Der, p2Central);
@@ -57,17 +113,6 @@ Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
 NS_LOG_INFO ("Create Applications.");
 
-
-
-/*UdpEchoClientHelper echoClient (interfaces.GetAddress (1), port); //Es el segundo nodo.
-echoClient.SetAttribute ("PaquetesMaximos", UintegerValue (1));
-echoClient.SetAttribute ("TamPaquete", UintegerValue (1024));
-echoClient.SetAttribute ("Intervalo", TimeValue (Seconds (1.0)));
- 
-AppplicationContainer clientApp = echoClient.Install (nodes.Get (0));
-clientApp.Start (Seconds (2.0));
-clientApp.Stop (Seconds (30.0));
-*/
 AnimationInterface anim ("mi_simulacion.xml");
 anim.SetConstantPosition (topologia.GetLeft(0), 0.0, 0.0);
 Names::Add ("Sender TCP1", topologia.GetLeft(0));
@@ -96,22 +141,21 @@ Names::Add ("Receiver TCP2", topologia.GetRight(2));
 
 NS_LOG_INFO ("Configurado Stack");
 
-  InternetStackHelper stack;
-  NodeContainer senders;
-  NodeContainer receivers;
-  for (uint32_t i = 0; i < topologia.LeftCount (); ++i)
-    {
-      senders.Add (topologia.GetLeft (i));
-      stack.Install (topologia.GetLeft (i));
-    }
-  for (uint32_t i = 0; i < topologia.RightCount (); ++i)
-    {
-      receivers.Add (topologia.GetRight (i));
-      stack.Install (topologia.GetRight (i));
-    }
+InternetStackHelper stack;
+NodeContainer senders;
+NodeContainer receivers;
+for (uint32_t i = 0; i < topologia.LeftCount (); ++i){
+    senders.Add (topologia.GetLeft (i));
+    stack.Install (topologia.GetLeft (i));
+}
 
-  stack.Install (dumbbell.GetLeft ());
-  stack.Install (dumbbell.GetRight ());
+for (uint32_t i = 0; i < topologia.RightCount (); ++i){
+    receivers.Add (topologia.GetRight (i));
+    stack.Install (topologia.GetRight (i));
+}
+
+stack.Install (topologia.GetLeft ());
+stack.Install (topologia.GetRight ());
 
 NS_LOG_INFO ("Configurado Application layer");
 
@@ -121,8 +165,8 @@ configApplicationLayer (senders, topologia.GetRightIpv4Address (0), topologia.Ge
 
 NodeContainer container;
   container.Add (senders);
-  container.Add (dumbbell.GetLeft ());
-  container.Add (dumbbell.GetRight ());
+  container.Add (topologia.GetLeft ());
+  container.Add (topologia.GetRight ());
   container.Add (receivers);
 
 
@@ -130,56 +174,5 @@ Simulator::Run ();
 Simulator::Destroy ();
 return 0;
 
-void configApplicationLayer (NodeContainer senders, Ipv4Address receiverTCP1 , Ipv4Address receiverUDP1, Ipv4Address receiverTCP2, receivers);
-{
-
-  // Create the OnOff applications to send TCP to the server
-  OnOffHelper udpOnOffApplication = createOnOffApplication ("ns3::UdpSocketFactory");
-    uint16_t udpPort = 80005;
-  OnOffHelper tcpOnOffApplication = createOnOffApplication ("ns3::TcpSocketFactory");
-    uint16_t tcpPort = 80006;
-  
-  ApplicationContainer appContainerSenders;
-
-  PacketSinkHelper udp_sink ("ns3::UdpSocketFactory",
-                            InetSocketAddress (Ipv4Address::GetAny (), udpPort));
-
-   PacketSinkHelper tcp_sink ("ns3::TcpSocketFactory",
-                            InetSocketAddress (Ipv4Address::GetAny (), tcpPort));
-
-   ApplicationContainer appContainerReceivers;
-
-
-
- // set up SenderTCP1 with onOff over TCP to send to receiverTCP1
-  appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (0), receiverTCP1, tcpPort));
-  appContainerReceivers.Add (tcp_sink.Install (receivers.Get (0)));
-  // set up SenderTCP2 with onOff over TCP to send to receiverTCP2
- appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (2), receiverTCP2, tcpPort));
-  appContainerReceivers.Add (tcp_sink.Install (receivers.Get (2)));
-
-
-  if (habilitarTCP)
-    {
-      // set up senderUDP1 with onOff over TCP to send to receiverUDP1
-      appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (1), receiverUPD1, tcpPort));
-      appContainerReceivers.Add (tcp_sink.Install (receivers.Get (1)));
-    }
-
-  if (habilitarUDP && !habilitarTCP)
-    {
-      // set up senderUDP1 with onOff over UDP to send to receiverUDP1
-      appContainerSenders.Add (setUpApplication (udpOnOffApplication, senders.Get (1), receiverUDP1, udpPort));
-      appContainerReceivers.Add (udp_sink.Install (receivers.Get (1)));
-    }
-
-  
-
-  appContainerSenders.Start (Seconds (1.0));
-  appContainerSenders.Stop (Seconds (30.0);
-  appContainerReceivers.Start (Seconds (0.0));
-  appContainerReceivers.Stop (Seconds (30.0));
-
-}
 
 }
