@@ -9,11 +9,13 @@
 #include "ns3/netanim-module.h"
 
 using namespace ns3;
+//bool habilitarUDP=true;
+//bool habilitarTCP=false;
 
 NS_LOG_COMPONENT_DEFINE ("TP2_REDES");
 
 // Refactor ya!
-uint32_t megabytesDataRate = 200;
+uint32_t megabytesDataRate = 1;
 OnOffHelper createOnOffApplication (std::string socketFactory){
   OnOffHelper application (socketFactory, Address ());
   application.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
@@ -82,23 +84,22 @@ void configApplicationLayer (NodeContainer senders, Ipv4Address receiverTCP1 , I
 
 int main (int argc, char *argv[]){
 
-//bool habilitarUDP=true;
-//bool habilitarTCP=false;
+
 NS_LOG_INFO ("Create nodes.");
 
 //Partes de la topologia
 NS_LOG_INFO ("Create channels.");
 PointToPointHelper p2Central;
-p2Central.SetDeviceAttribute ("DataRate:", StringValue ("5Mbps"));
-p2Central.SetChannelAttribute ("Delay:", StringValue ("1ms"));
+p2Central.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+p2Central.SetChannelAttribute ("Delay", StringValue ("1ms"));
 
 PointToPointHelper p2Izq;
-p2Izq.SetDeviceAttribute ("DataRate:", StringValue ("15Mbps"));
-p2Izq.SetChannelAttribute ("Delay:", StringValue ("5ms"));
+p2Izq.SetDeviceAttribute ("DataRate", StringValue ("15Mbps"));
+p2Izq.SetChannelAttribute ("Delay", StringValue ("5ms"));
 
 PointToPointHelper p2Der;
-p2Der.SetDeviceAttribute ("DataRate:", StringValue ("15Mbps"));
-p2Der.SetChannelAttribute ("Delay:", StringValue ("5ms"));
+p2Der.SetDeviceAttribute ("DataRate", StringValue ("15Mbps"));
+p2Der.SetChannelAttribute ("Delay", StringValue ("5ms"));
 
 NS_LOG_INFO ("Create Dumbbell");
 PointToPointDumbbellHelper topologia (3, p2Izq, 3, p2Der, p2Central);
