@@ -9,8 +9,8 @@
 #include "ns3/netanim-module.h"
 
 using namespace ns3;
-//bool habilitarUDP=true;
-//bool habilitarTCP=false;
+bool habilitarUDP=true;
+bool habilitarTCP=false;
 
 NS_LOG_COMPONENT_DEFINE ("TP2_REDES");
 
@@ -58,11 +58,11 @@ void configApplicationLayer (NodeContainer senders, Ipv4Address receiverTCP1 , I
  appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (2), receiverTCP2, tcpPort));
   appContainerReceivers.Add (tcp_sink.Install (receivers.Get (2)));
 
-  /*
+  
   if (habilitarTCP)
     {
       // set up senderUDP1 with onOff over TCP to send to receiverUDP1
-      appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (1), receiverUPD1, tcpPort));
+      appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (1), receiverUDP1, tcpPort));
       appContainerReceivers.Add (tcp_sink.Install (receivers.Get (1)));
     }
 
@@ -72,7 +72,7 @@ void configApplicationLayer (NodeContainer senders, Ipv4Address receiverTCP1 , I
       appContainerSenders.Add (setUpApplication (udpOnOffApplication, senders.Get (1), receiverUDP1, udpPort));
       appContainerReceivers.Add (udp_sink.Install (receivers.Get (1)));
     }
-  */
+  
   appContainerSenders.Start (Seconds (1.0));
   appContainerSenders.Stop (Seconds (30.0));
   appContainerReceivers.Start (Seconds (0.0));
@@ -106,31 +106,32 @@ PointToPointDumbbellHelper topologia (3, p2Izq, 3, p2Der, p2Central);
 
 NS_LOG_INFO ("Create Applications.");
 
-AnimationInterface anim ("mi_simulacion.xml");
-anim.SetConstantPosition (topologia.GetLeft(0), 0.0, 0.0);
+
+AnimationInterface::SetConstantPosition (topologia.GetLeft(0), 0.0, 0.0);
 Names::Add ("Sender TCP1", topologia.GetLeft(0));
 
-anim.SetConstantPosition (topologia.GetLeft(1), 0.0, 2.0);
+AnimationInterface::SetConstantPosition (topologia.GetLeft(1), 0.0, 2.0);
 Names::Add ("Sender UDP1", topologia.GetLeft(1));
 
-anim.SetConstantPosition (topologia.GetLeft(2), 0.0, 4.0);
+AnimationInterface::SetConstantPosition (topologia.GetLeft(2), 0.0, 4.0);
 Names::Add ("Sender TCP2", topologia.GetLeft(2));
 
-anim.SetConstantPosition (topologia.GetLeft(), 2.0, 2.0);
+AnimationInterface::SetConstantPosition (topologia.GetLeft(), 2.0, 2.0);
 Names::Add ("Router1", topologia.GetLeft());
 
-anim.SetConstantPosition (topologia.GetRight(), 4.0, 2.0);
+AnimationInterface::SetConstantPosition (topologia.GetRight(), 4.0, 2.0);
 Names::Add ("Router2", topologia.GetRight());
 
-anim.SetConstantPosition (topologia.GetRight(0), 6.0, 0.0);
+AnimationInterface::SetConstantPosition (topologia.GetRight(0), 6.0, 0.0);
 Names::Add ("Receiver TCP1", topologia.GetRight(0));
 
-anim.SetConstantPosition (topologia.GetRight(1), 6.0, 2.0);
+AnimationInterface::SetConstantPosition (topologia.GetRight(1), 6.0, 2.0);
 Names::Add ("Receiver UDP1", topologia.GetRight(1));
 
-anim.SetConstantPosition (topologia.GetRight(2), 6.0, 4.0);
+AnimationInterface::SetConstantPosition (topologia.GetRight(2), 6.0, 4.0);
 Names::Add ("Receiver TCP2", topologia.GetRight(2));
-
+AnimationInterface anim ("mi_simulacion.xml");
+anim.EnablePacketMetadata(true);
 
 NS_LOG_INFO ("Configurado Stack");
 
@@ -173,6 +174,8 @@ NodeContainer container;
   container.Add (topologia.GetLeft ());
   container.Add (topologia.GetRight ());
   container.Add (receivers);
+
+//agregado:
 
 
 Simulator::Run ();
