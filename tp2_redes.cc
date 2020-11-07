@@ -104,14 +104,6 @@ p2Der.SetChannelAttribute ("Delay", StringValue ("5ms"));
 NS_LOG_INFO ("Create Dumbbell");
 PointToPointDumbbellHelper topologia (3, p2Izq, 3, p2Der, p2Central);
 
-NS_LOG_INFO ("Assign IP Addresses.");
-topologia.AssignIpv4Addresses (Ipv4AddressHelper ("10.1.1.0", "255.255.255.0"),
-                                Ipv4AddressHelper ("10.1.2.0", "255.255.255.0"),
-                                Ipv4AddressHelper ("10.1.3.0", "255.255.255.0"));
-
-NS_LOG_INFO ("Populating routing tables");
-Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
-
 NS_LOG_INFO ("Create Applications.");
 
 AnimationInterface anim ("mi_simulacion.xml");
@@ -157,6 +149,18 @@ for (uint32_t i = 0; i < topologia.RightCount (); ++i){
 
 stack.Install (topologia.GetLeft ());
 stack.Install (topologia.GetRight ());
+
+
+NS_LOG_INFO ("Assign IP Addresses.");
+topologia.AssignIpv4Addresses (Ipv4AddressHelper ("10.1.1.0", "255.255.255.0"),
+                                Ipv4AddressHelper ("10.2.1.0", "255.255.255.0"),
+                                Ipv4AddressHelper ("10.3.1.0", "255.255.255.0"));
+
+NS_LOG_INFO ("Populating routing tables");
+Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+
+
+
 
 NS_LOG_INFO ("Configurado Application layer");
 
