@@ -175,9 +175,13 @@ NodeContainer container;
   container.Add (topologia.GetRight ());
   container.Add (receivers);
 
-//agregado:
+  AsciiTraceHelper asciiTrace;
+  p2Izq.EnableAsciiAll (asciiTrace.CreateFileStream ("izquierda.tr"));
+  p2Izq.EnablePcapAll ("izquierda");
 
+  p2Der.EnableAsciiAll (asciiTrace.CreateFileStream ("derecha.tr"));
 
+  p2Central.EnableAsciiAll (asciiTrace.CreateFileStream ("central.tr"));
 Simulator::Run ();
 Simulator::Destroy ();
 return 0;
