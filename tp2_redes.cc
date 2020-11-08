@@ -7,6 +7,7 @@
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/point-to-point-layout-module.h" //Dumbbel helper
 #include "ns3/netanim-module.h"
+#include "ns3/flow-monitor-module.h"
 
 using namespace ns3;
 bool habilitarUDP=true;
@@ -182,8 +183,17 @@ NodeContainer container;
   p2Der.EnableAsciiAll (asciiTrace.CreateFileStream ("derecha.tr"));
 
   p2Central.EnableAsciiAll (asciiTrace.CreateFileStream ("central.tr"));
-Simulator::Run ();
-Simulator::Destroy ();
+  
+ //define stop time of simulator
+  Simulator::Stop (Seconds (10.0)); //define stop time of simulator
+  Ptr<FlowMonitor> flowmon;
+  FlowMonitorHelper flowmonHelper;
+  flowmon = flowmonHelper.InstallAll();
+
+  Simulator::Run (); //run the simulation and destroy it once done
+
+  flowmon->SerializeToXmlFile("NameOfFile.xml", true, true);
+
 return 0;
 
 
