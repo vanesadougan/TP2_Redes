@@ -10,8 +10,8 @@
 #include "ns3/flow-monitor-module.h"
 
 using namespace ns3;
-bool habilitarUDP=true;
-bool habilitarTCP=false;
+bool habilitarUDP=false;
+bool habilitarTCP=true;
 
 NS_LOG_COMPONENT_DEFINE ("TP2_REDES");
 
@@ -75,9 +75,9 @@ void configApplicationLayer (NodeContainer senders, Ipv4Address receiverTCP1 , I
     }
   
   appContainerSenders.Start (Seconds (1.0));
-  appContainerSenders.Stop (Seconds (30.0));
+  appContainerSenders.Stop (Seconds (90.0));
   appContainerReceivers.Start (Seconds (0.0));
-  appContainerReceivers.Stop (Seconds (30.0));
+  appContainerReceivers.Stop (Seconds (90.0));
 
 }
 
@@ -91,16 +91,16 @@ NS_LOG_INFO ("Create nodes.");
 //Partes de la topologia
 NS_LOG_INFO ("Create channels.");
 PointToPointHelper p2Central;
-p2Central.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+p2Central.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
 p2Central.SetChannelAttribute ("Delay", StringValue ("1ms"));
 
 PointToPointHelper p2Izq;
-p2Izq.SetDeviceAttribute ("DataRate", StringValue ("15Mbps"));
-p2Izq.SetChannelAttribute ("Delay", StringValue ("5ms"));
+p2Izq.SetDeviceAttribute ("DataRate", StringValue ("150Mbps"));
+p2Izq.SetChannelAttribute ("Delay", StringValue ("1ms"));
 
 PointToPointHelper p2Der;
-p2Der.SetDeviceAttribute ("DataRate", StringValue ("15Mbps"));
-p2Der.SetChannelAttribute ("Delay", StringValue ("5ms"));
+p2Der.SetDeviceAttribute ("DataRate", StringValue ("150Mbps"));
+p2Der.SetChannelAttribute ("Delay", StringValue ("1ms"));
 
 NS_LOG_INFO ("Create Dumbbell");
 PointToPointDumbbellHelper topologia (3, p2Izq, 3, p2Der, p2Central);
@@ -183,17 +183,43 @@ NodeContainer container;
   p2Der.EnableAsciiAll (asciiTrace.CreateFileStream ("derecha.tr"));
 
   p2Central.EnableAsciiAll (asciiTrace.CreateFileStream ("central.tr"));
-  
+
+
+ 
  //define stop time of simulator
   Simulator::Stop (Seconds (10.0)); //define stop time of simulator
-  Ptr<FlowMonitor> flowmon;
-  FlowMonitorHelper flowmonHelper;
-  flowmon = flowmonHelper.InstallAll();
+ // Ptr<FlowMonitor> flowmon;
+  //FlowMonitorHelper flowmonHelper;
+  //flowmon = flowmonHelper.InstallAll();
+
+  FlowMonitorHelper flowmon;
+  Ptr<FlowMonitor> flmon = flowmon.Install(container);
 
   Simulator::Run (); //run the simulation and destroy it once done
 
-  flowmon->SerializeToXmlFile("NameOfFile.xml", true, true);
+flmon->CheckForLostPackets ();
+  Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
+  FlowMonitor::FlowStatsContainer stats = flmon->GetFlowStats ();
+  for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin ();
+       i != stats.end (); ++i)
+    {
+      Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (i->first);
+      std::cout << "Flujo " << i->first << " (" << t.sourceAddress << " -> " << t.destinationAddress
+                << ")\n";
+      std::cout << "  Tx Packets: " << i->second.txPackets << "\n";
+      std::cout << "  Tx Bytes:   " << i->second.txBytes << "\n";
+      std::cout << "  TxOffered:  " << i->second.txBytes * 8.0 / 9.0 / 1000 / 1000 << " Mbps\n";
+      std::cout << "  Rx Packets: " << i->second.rxPackets << "\n";
+      std::cout << "  Rx Bytes:   " << i->second.rxBytes << "\n";
+      std::cout << "  Throughput: " << i->second.rxBytes * 8.0 / 9.0 / 1000 / 1000 << " Mbps\n";
+      std::cout << "  Lost Packets: " << i->second.lostPackets << "\n";
+    }
 
+
+
+  flmon->SerializeToXmlFile("estadisticas.xml", true, true);
+
+Simulator::Destroy ();
 return 0;
 
 
