@@ -8,15 +8,31 @@
 #include "ns3/point-to-point-layout-module.h" //Dumbbel helper
 #include "ns3/netanim-module.h"
 #include "ns3/flow-monitor-module.h"
+#include <iomanip>
 
 using namespace ns3;
 bool habilitarUDP=false;
-bool habilitarTCP=true;
+bool todosTCP=true;
 
 NS_LOG_COMPONENT_DEFINE ("TP2_REDES");
 
+ //std::ofstream cwndStream;
+
+//static void
+ //CwndTracer (uint32_t oldval, uint32_t newval)
+ //{
+   //cwndStream << std::fixed << std::setprecision (6) << Simulator::Now ().GetSeconds () << std::setw (12) << newval << std::endl;
+ //}
+
+//void
+ //ConnectSocketTraces (void)
+ //{
+//Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow", MakeCallback (&CwndTracer));
+ //}
 // Refactor ya!
-uint32_t megabytesDataRate = 1;
+
+
+uint32_t megabytesDataRate = 150;
 OnOffHelper createOnOffApplication (std::string socketFactory){
   OnOffHelper application (socketFactory, Address ());
   application.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
@@ -60,14 +76,14 @@ void configApplicationLayer (NodeContainer senders, Ipv4Address receiverTCP1 , I
   appContainerReceivers.Add (tcp_sink.Install (receivers.Get (2)));
 
   
-  if (habilitarTCP)
+  if (todosTCP)
     {
       // set up senderUDP1 with onOff over TCP to send to receiverUDP1
       appContainerSenders.Add (setUpApplication (tcpOnOffApplication, senders.Get (1), receiverUDP1, tcpPort));
       appContainerReceivers.Add (tcp_sink.Install (receivers.Get (1)));
     }
 
-  if (habilitarUDP && !habilitarTCP)
+  if (habilitarUDP && !todosTCP)
     {
       // set up senderUDP1 with onOff over UDP to send to receiverUDP1
       appContainerSenders.Add (setUpApplication (udpOnOffApplication, senders.Get (1), receiverUDP1, udpPort));
@@ -75,9 +91,9 @@ void configApplicationLayer (NodeContainer senders, Ipv4Address receiverTCP1 , I
     }
   
   appContainerSenders.Start (Seconds (1.0));
-  appContainerSenders.Stop (Seconds (90.0));
+  appContainerSenders.Stop (Seconds (30.0));
   appContainerReceivers.Start (Seconds (0.0));
-  appContainerReceivers.Stop (Seconds (90.0));
+  appContainerReceivers.Stop (Seconds (30.0));
 
 }
 
@@ -85,21 +101,23 @@ void configApplicationLayer (NodeContainer senders, Ipv4Address receiverTCP1 , I
 
 int main (int argc, char *argv[]){
 
+Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpHybla"));
+
 
 NS_LOG_INFO ("Create nodes.");
 
 //Partes de la topologia
 NS_LOG_INFO ("Create channels.");
 PointToPointHelper p2Central;
-p2Central.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
+p2Central.SetDeviceAttribute ("DataRate", StringValue ("10Mbps"));
 p2Central.SetChannelAttribute ("Delay", StringValue ("1ms"));
 
 PointToPointHelper p2Izq;
-p2Izq.SetDeviceAttribute ("DataRate", StringValue ("150Mbps"));
+p2Izq.SetDeviceAttribute ("DataRate", StringValue ("10Mbps"));
 p2Izq.SetChannelAttribute ("Delay", StringValue ("1ms"));
 
 PointToPointHelper p2Der;
-p2Der.SetDeviceAttribute ("DataRate", StringValue ("150Mbps"));
+p2Der.SetDeviceAttribute ("DataRate", StringValue ("10Mbps"));
 p2Der.SetChannelAttribute ("Delay", StringValue ("1ms"));
 
 NS_LOG_INFO ("Create Dumbbell");
@@ -113,6 +131,7 @@ Names::Add ("Sender TCP1", topologia.GetLeft(0));
 
 AnimationInterface::SetConstantPosition (topologia.GetLeft(1), 0.0, 2.0);
 Names::Add ("Sender UDP1", topologia.GetLeft(1));
+
 
 AnimationInterface::SetConstantPosition (topologia.GetLeft(2), 0.0, 4.0);
 Names::Add ("Sender TCP2", topologia.GetLeft(2));
@@ -184,7 +203,9 @@ NodeContainer container;
 
   p2Central.EnableAsciiAll (asciiTrace.CreateFileStream ("central.tr"));
 
-
+  
+  // cwndStream.open("tpc-cwnd.dat", std::ios::out);
+   //cwndStream << "Tiempo de ventana de congestion" << std::endl;
  
  //define stop time of simulator
   Simulator::Stop (Seconds (10.0)); //define stop time of simulator
@@ -206,18 +227,24 @@ flmon->CheckForLostPackets ();
       Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (i->first);
       std::cout << "Flujo " << i->first << " (" << t.sourceAddress << " -> " << t.destinationAddress
                 << ")\n";
-      std::cout << "  Tx Packets: " << i->second.txPackets << "\n";
-      std::cout << "  Tx Bytes:   " << i->second.txBytes << "\n";
+      std::cout << "  Paquetes totales transmitidos: " << i->second.txPackets << "\n";
+      std::cout << "  Bytes totales transmitidos:   " << i->second.txBytes << "\n";
       std::cout << "  TxOffered:  " << i->second.txBytes * 8.0 / 9.0 / 1000 / 1000 << " Mbps\n";
-      std::cout << "  Rx Packets: " << i->second.rxPackets << "\n";
-      std::cout << "  Rx Bytes:   " << i->second.rxBytes << "\n";
+      std::cout << "  Paquetes totales recibidos: " << i->second.rxPackets << "\n";
+      std::cout << "  Bytes totales recibidos:   " << i->second.rxBytes << "\n";
       std::cout << "  Throughput: " << i->second.rxBytes * 8.0 / 9.0 / 1000 / 1000 << " Mbps\n";
-      std::cout << "  Lost Packets: " << i->second.lostPackets << "\n";
+      std::cout << "  Paquetes Perdidos: " << i->second.lostPackets << "\n";
+       std::cout << "  Veces de Retransmision: " << i->second.timesForwarded << "\n";
+
+
     }
 
 
 
   flmon->SerializeToXmlFile("estadisticas.xml", true, true);
+
+
+//cwndStream.close();
 
 Simulator::Destroy ();
 return 0;
