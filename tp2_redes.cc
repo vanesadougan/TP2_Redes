@@ -119,34 +119,6 @@ int main(int argc, char *argv[])
   NS_LOG_INFO("Create Dumbbell");
   PointToPointDumbbellHelper topologia(3, p2Izq, 3, p2Der, p2Central);
 
-  NS_LOG_INFO("Create Applications.");
-
-  AnimationInterface::SetConstantPosition(topologia.GetLeft(0), 0.0, 0.0);
-  Names::Add("Sender TCP1", topologia.GetLeft(0));
-
-  AnimationInterface::SetConstantPosition(topologia.GetLeft(1), 0.0, 2.0);
-  Names::Add("Sender UDP1", topologia.GetLeft(1));
-
-  AnimationInterface::SetConstantPosition(topologia.GetLeft(2), 0.0, 4.0);
-  Names::Add("Sender TCP2", topologia.GetLeft(2));
-
-  AnimationInterface::SetConstantPosition(topologia.GetLeft(), 2.0, 2.0);
-  Names::Add("Router1", topologia.GetLeft());
-
-  AnimationInterface::SetConstantPosition(topologia.GetRight(), 4.0, 2.0);
-  Names::Add("Router2", topologia.GetRight());
-
-  AnimationInterface::SetConstantPosition(topologia.GetRight(0), 6.0, 0.0);
-  Names::Add("Receiver TCP1", topologia.GetRight(0));
-
-  AnimationInterface::SetConstantPosition(topologia.GetRight(1), 6.0, 2.0);
-  Names::Add("Receiver UDP1", topologia.GetRight(1));
-
-  AnimationInterface::SetConstantPosition(topologia.GetRight(2), 6.0, 4.0);
-  Names::Add("Receiver TCP2", topologia.GetRight(2));
-  AnimationInterface anim("mi_simulacion.xml");
-  anim.EnablePacketMetadata(true);
-
   NS_LOG_INFO("Configurado Stack");
 
   InternetStackHelper stack;
@@ -185,6 +157,34 @@ int main(int argc, char *argv[])
   container.Add(topologia.GetRight());
   container.Add(receivers);
 
+  NS_LOG_INFO("Create Applications.");
+
+  AnimationInterface::SetConstantPosition(topologia.GetLeft(0), 0.0, 0.0);
+  Names::Add("Sender TCP1", topologia.GetLeft(0));
+
+  AnimationInterface::SetConstantPosition(topologia.GetLeft(1), 0.0, 2.0);
+  Names::Add("Sender UDP1", topologia.GetLeft(1));
+
+  AnimationInterface::SetConstantPosition(topologia.GetLeft(2), 0.0, 4.0);
+  Names::Add("Sender TCP2", topologia.GetLeft(2));
+
+  AnimationInterface::SetConstantPosition(topologia.GetLeft(), 2.0, 2.0);
+  Names::Add("Router1", topologia.GetLeft());
+
+  AnimationInterface::SetConstantPosition(topologia.GetRight(), 4.0, 2.0);
+  Names::Add("Router2", topologia.GetRight());
+
+  AnimationInterface::SetConstantPosition(topologia.GetRight(0), 6.0, 0.0);
+  Names::Add("Receiver TCP1", topologia.GetRight(0));
+
+  AnimationInterface::SetConstantPosition(topologia.GetRight(1), 6.0, 2.0);
+  Names::Add("Receiver UDP1", topologia.GetRight(1));
+
+  AnimationInterface::SetConstantPosition(topologia.GetRight(2), 6.0, 4.0);
+  Names::Add("Receiver TCP2", topologia.GetRight(2));
+  AnimationInterface anim("mi_simulacion.xml");
+  anim.EnablePacketMetadata(true);
+
   AsciiTraceHelper asciiTrace;
   p2Izq.EnableAsciiAll(asciiTrace.CreateFileStream("izquierda.tr"));
   p2Izq.EnablePcapAll("izquierda");
@@ -192,6 +192,8 @@ int main(int argc, char *argv[])
   p2Der.EnableAsciiAll(asciiTrace.CreateFileStream("derecha.tr"));
 
   p2Central.EnableAsciiAll(asciiTrace.CreateFileStream("central.tr"));
+
+  topologia.BoundingBox(1, 1, 100, 100);
 
   // cwndStream.open("tpc-cwnd.dat", std::ios::out);
   //cwndStream << "Tiempo de ventana de congestion" << std::endl;
